@@ -17,11 +17,14 @@ FAN_SLEEP_TIME=600 # 10 minutes
 # fan_on <force> [echo humidity info]
 fan_on () {
   if [[ $1 != true ]]; then
-    # check if fan turned off recently
-    let AGE=$(($(date +%s)-$(date -r /tmp/fanoff +%s)))
-    if [[ $AGE -lt $FAN_SLEEP_TIME ]]; then
-      # don't turn fan back on yet
-      exit 0
+    # check if fan is off
+    if [[ -f /tmp/fanoff ]]; then
+      # check if fan turned off recently
+      AGE=`date -d "now - $( stat -c "%Y" /tmp/fanon ) seconds" +%s`
+      if [[ $AGE -lt $FAN_SLEEP_TIME ]]; then
+        # don't turn fan back on yet
+        exit 0
+      fi
     fi
   fi
 
@@ -36,11 +39,14 @@ fan_on () {
 # fan_off <force> [echo humidity info]
 fan_off () {
   if [[ $1 != true ]]; then
-    # check if fan turned off recently
-    let AGE=$(($(date +%s)-$(date -r /tmp/fanoff +%s)))
-    if [[ $AGE -lt $FAN_SLEEP_TIME ]]; then
-      # don't turn fan back on yet
-      exit 0
+    # check if fan is on
+      if [[ -f /tmp/fanon ]]; then
+      # check if fan turned on recently
+      AGE=`date -d "now - $( stat -c "%Y" /tmp/fanon ) seconds" +%s`
+      if [[ $AGE -lt $FAN_SLEEP_TIME ]]; then
+        # don't turn fan back on yet
+        exit 0
+      fi
     fi
   fi
 
