@@ -3,25 +3,76 @@
 # runs via crontab
 # * * * * * /home/pi/fan_control/humidity_check.sh >>/home/pi/fan_control/humidity_check.log 2>&1
 
+#
+# config
+#
+
+# how long in seconds to wait before turning the fan back on or off again
+FAN_SLEEP_TIME=600 # 10 minutes
+
+#
+# functions
+#
+
+# fan_on <force> [echo humidity info]
+fan_on () {
+  if [[ $1 != true ]]; then
+    # check if fan turned off recently
+    let AGE=$(($(date +%s)-$(date -r /tmp/fanoff +%s)))
+    if [[ $AGE -lt $FAN_SLEEP_TIME ]]; then
+      # don't turn fan back on yet
+      exit 0
+    fi
+  fi
+
+  # check if fan already on
+  if [[ ! -f /tmp/fanon ]]; then
+    rm -f /tmp/fanoff && touch /tmp/fanon
+    if [[ -n $2 ]]; then echo "`date`: humidity is $HUMIDITY, turning fan on"; fi
+    sudo python3 /home/pi/fan_control/fan.py 100
+  fi
+}
+
+# fan_off <force> [echo humidity info]
+fan_off () {
+  if [[ $1 != true ]]; then
+    # check if fan turned off recently
+    let AGE=$(($(date +%s)-$(date -r /tmp/fanoff +%s)))
+    if [[ $AGE -lt $FAN_SLEEP_TIME ]]; then
+      # don't turn fan back on yet
+      exit 0
+    fi
+  fi
+
+  # check if fan already off
+  if [[ ! -f /tmp/fanoff ]]; then
+    rm -f /tmp/fanon && touch /tmp/fanoff
+    if [[ -n $2 ]]; then echo "`date`: humidity is $HUMIDITY, turning fan off"; fi
+    sudo python3 /home/pi/fan_control/fan.py 0
+  fi
+}
+
+#
+# script begin
+#
+
+# automatic misting at 9am and 8pm so need to add an ignore for an hour
+if [[ `date +"%H"` == "09" ]] || [[ `date +"%H"` == "20" ]] ; then
+  fan_off true
+  exit 0
+fi
+
 # get current humidity level
 HUMIDITY=`curl -s -X GET http://localhost:8090/api/areas/70a97617-5456-4f39-bbf1-c08414f5c5dd/ | jq .state.sensors.current`
 
 if [[ -n $HUMIDITY ]]; then
   HUMIDITY=`echo $HUMIDITY | awk -F"." '{print $1}'`
   if [[ $HUMIDITY -gt 80 ]]; then
-    if [[ ! -f /tmp/fanon ]]; then
-      rm -f /tmp/fanoff && touch /tmp/fanon
-      # turn fan on to lower humidity
-      echo "`date`: humidity is $HUMIDITY, turning fan on"
-      sudo python3 /home/pi/fan_control/fan.py 100
-    fi
+    # turn fan on to lower humidity
+    fan_on false true
   else
-    if [[ ! -f /tmp/fanoff ]]; then
-      # turn fan off as humidity is low enough
-      rm -f /tmp/fanon && touch /tmp/fanoff
-      echo "`date`: humidity is $HUMIDITY, turning fan off"
-      sudo python3 /home/pi/fan_control/fan.py 0
-    fi  
+    # turn fan off as humidity is low enough
+    fan_off false true
   fi
 fi
 
