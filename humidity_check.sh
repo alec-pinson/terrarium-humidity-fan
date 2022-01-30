@@ -27,5 +27,5 @@ fi
 
 # cycle log each day, keep 7 days
 if [[ `date +"%H:%M"` == "00:00" ]]; then
-  mv /home/pi/fan_control/humidity_check.log /home/pi/fan_control/humidity_check_%u.log 
+  mv /home/pi/fan_control/humidity_check.log /home/pi/fan_control/humidity_check_`date +"%u"`.log 
 fi
