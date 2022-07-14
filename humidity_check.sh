@@ -73,7 +73,7 @@ HUMIDITY=`curl -s -X GET http://localhost:8090/api/areas/70a97617-5456-4f39-bbf1
 
 if [[ -n $HUMIDITY ]]; then
   HUMIDITY=`echo $HUMIDITY | awk -F"." '{print $1}'`
-  if [[ $HUMIDITY -gt 80 ]]; then
+  if [[ $HUMIDITY -gt 87 ]]; then
     # turn fan on to lower humidity
     fan_on false true
   else
@@ -84,5 +84,5 @@ fi
 
 # cycle log each day, keep 7 days
 if [[ `date +"%H:%M"` == "00:00" ]]; then
-  mv /home/pi/fan_control/humidity_check.log /home/pi/fan_control/humidity_check_`date +"%u"`.log 
+  mv /home/pi/fan_control/humidity_check.log /home/pi/fan_control/humidity_check_`date +"%u"`.log
 fi
